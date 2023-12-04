@@ -1,62 +1,86 @@
 import Data.List.Split
 
+type Color = String
+type Cubes = (Int, Color) -- n times color
+type Set = [Cubes]
+type Game = (Int, [Set])
+
 -- Helpers
 innerMap :: (a->b) -> [[a]] -> [[b]]
 innerMap func = map (map func)
 
-tupleMap :: (a->b) -> (a,a,a) -> (b,b,b)
-tupleMap f (a,b,c) = (f a, f b, f c)
+tuple2Map :: ((a->b), (c->d)) -> (a,c) -> (b,d)
+tuple2Map (f, g) (a,b) = (f a, g b)
+
+tuple3Map :: ((a->d),(b->f),(c->g)) -> (a,b,c) -> (d,f,g)
+tuple3Map (f,g,h) (a,b,c) = (f a, g b, h c)
+
+tuplify2 :: [a] -> (a,a)
+tuplify2 [x,y] = (x,y)
 
 myMax :: [Int] -> Int
 myMax [] = 0
 myMax list = maximum list
 
+triple :: a -> (a,a,a)
+triple a = (a,a,a)
+
 -- Real Code
 
-sumCubesByColor :: String -> [(Int,String)] -> Int
-sumCubesByColor color = sum . map fst . filter (\(_,col)->col == color)
+sumFilteredNumberdPair :: ((Int, a) -> Bool) -> [(Int,a)] -> Int
+sumFilteredNumberdPair func = sum . map fst . filter func
 
-checkPossibleSet :: [(Int,String)] -> Bool
+sumCubesByColor :: String -> Set -> Int
+sumCubesByColor color = sumFilteredNumberdPair ((== color) . snd)
+
+checkPossibleSet :: Set -> Bool
 checkPossibleSet set = sum_red <= 12 && sum_green <= 13 && sum_blue <= 14
     where 
         sum_red = sumCubesByColor "red" set
         sum_blue = sumCubesByColor "blue" set
         sum_green = sumCubesByColor "green" set
 
-checkPossibleRound :: [[(Int,String)]] -> Bool
+checkPossibleRound :: [Set] -> Bool
 checkPossibleRound = all checkPossibleSet
 
-checkPossibleGames :: [(Int,[[(Int,String)]])] -> Int
-checkPossibleGames = sum . map fst . filter (\(_,set)->checkPossibleRound set)
+checkPossibleGames :: [Game] -> Int
+checkPossibleGames = sumFilteredNumberdPair (checkPossibleRound . snd)
 
 
-
-collectMaxCubesPerSet :: [(Int,String)] -> (Int,Int,Int)
-collectMaxCubesPerSet list = (numRedCubes,numBlueCubes,numGreenCubes)
+collectMaxCubesPerSet :: Set -> (Int,Int,Int)
+collectMaxCubesPerSet list = tuple3Map (triple numColordCubes) ("red", "green", "blue")
     where
-        numRedCubes = myMax $ map fst $ filter ((== "red") . snd) list
-        numGreenCubes = myMax $ map fst $ filter ((== "green") .snd) list
-        numBlueCubes = myMax $ map fst $ filter ((== "blue") . snd) list
+        numColordCubes color = myMax $ map fst $ filter ((== color) . snd) list
+        
+collectMaxCubesPerGame :: [Set] -> (Int,Int,Int)
+collectMaxCubesPerGame game = tuple3Map (triple myMax) $ unzip3 $ map collectMaxCubesPerSet game
 
-collectMaxCubesPerGame :: [[(Int,String)]] -> (Int,Int,Int)
-collectMaxCubesPerGame game = tupleMap myMax $ unzip3 $ map collectMaxCubesPerSet game
-
-collectMaxCubes :: [[[(Int,String)]]] -> Int
+collectMaxCubes :: [[Set]] -> Int
 collectMaxCubes = sum . map (multi . collectMaxCubesPerGame)
     where
         multi (a,b,c) = a*b*c
 
+
+
+parseCubes :: String -> Cubes
+parseCubes = tuple2Map (read, id) . tuplify2 . splitOn " "
+
+parseSet :: String -> Set
+parseSet = map parseCubes . splitOn ", "
+
+parseSets :: String -> [Set]
+parseSets = map parseSet . splitOn "; "
+
+parseGame :: String -> Game
+parseGame = tuple2Map (read, parseSets) . tuplify2 . splitOn ": "
+
+parseFullGame :: String -> [Game]
+parseFullGame = map parseGame . lines
+
 input_1 = do
     contents <- readFile "input_1.txt"
 
-    let input_1 = map (splitOn ": ") (lines contents)
-
-    let input_2 = map (\[game,sets] -> (
-                            read (last $ splitOn " " game)::Int,
-                            innerMap (\el->(read(head $ splitOn " " el)::Int,last $ splitOn " " el))
-                                (map (splitOn ", ") $ splitOn "; " sets)
-                            )
-                    ) input_1
+    let parsed_input = parseFullGame contents
     
-    print (checkPossibleGames input_2)
-    print (collectMaxCubes $ map snd input_2)
+    print $ checkPossibleGames parsed_input
+    print $ collectMaxCubes $ map snd parsed_input
