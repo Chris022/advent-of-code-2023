@@ -9,10 +9,10 @@ type Game = (Int, [Set])
 innerMap :: (a->b) -> [[a]] -> [[b]]
 innerMap func = map (map func)
 
-tuple2Map :: ((a->b), (c->d)) -> (a,c) -> (b,d)
+tuple2Map :: (a->b, c->d) -> (a,c) -> (b,d)
 tuple2Map (f, g) (a,b) = (f a, g b)
 
-tuple3Map :: ((a->d),(b->f),(c->g)) -> (a,b,c) -> (d,f,g)
+tuple3Map :: (a->d,b->f,c->g) -> (a,b,c) -> (d,f,g)
 tuple3Map (f,g,h) (a,b,c) = (f a, g b, h c)
 
 tuplify2 :: [a] -> (a,a)
@@ -27,11 +27,11 @@ triple a = (a,a,a)
 
 -- Real Code
 
-sumFilteredNumberdPair :: ((Int, a) -> Bool) -> [(Int,a)] -> Int
-sumFilteredNumberdPair func = sum . map fst . filter func
+sumFilteredNumberedPair :: ((Int, a) -> Bool) -> [(Int,a)] -> Int
+sumFilteredNumberedPair func = sum . map fst . filter func
 
 sumCubesByColor :: String -> Set -> Int
-sumCubesByColor color = sumFilteredNumberdPair ((== color) . snd)
+sumCubesByColor color = sumFilteredNumberedPair ((== color) . snd)
 
 checkPossibleSet :: Set -> Bool
 checkPossibleSet set = sum_red <= 12 && sum_green <= 13 && sum_blue <= 14
@@ -44,13 +44,13 @@ checkPossibleRound :: [Set] -> Bool
 checkPossibleRound = all checkPossibleSet
 
 checkPossibleGames :: [Game] -> Int
-checkPossibleGames = sumFilteredNumberdPair (checkPossibleRound . snd)
+checkPossibleGames = sumFilteredNumberedPair (checkPossibleRound . snd)
 
 
 collectMaxCubesPerSet :: Set -> (Int,Int,Int)
-collectMaxCubesPerSet list = tuple3Map (triple numColordCubes) ("red", "green", "blue")
+collectMaxCubesPerSet list = tuple3Map (triple numColoredCubes) ("red", "green", "blue")
     where
-        numColordCubes color = myMax $ map fst $ filter ((== color) . snd) list
+        numColoredCubes color = myMax $ map fst $ filter ((== color) . snd) list
         
 collectMaxCubesPerGame :: [Set] -> (Int,Int,Int)
 collectMaxCubesPerGame game = tuple3Map (triple myMax) $ unzip3 $ map collectMaxCubesPerSet game
